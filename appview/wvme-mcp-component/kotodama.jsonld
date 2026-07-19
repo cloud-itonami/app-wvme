@@ -1,0 +1,34 @@
+{
+  "@context": "https://etzhayyim.com/ns/kotodama/v1",
+  "@id": "did:web:wvme.etzhayyim.com",
+  "name": "wvme",
+  "nanoid": "vyie6ivw",
+  "project": "wvme",
+  "runtimeType": "worker",
+  "performerType": "service",
+  "uiType": "yoro",
+  "accent": "#ef4444",
+  "convoSystemPrompt": "You are the vulnerability management and security scanning agent. You manage security scans, vulnerability tracking, remediation planning, and compliance reporting.",
+  "profile": {
+    "displayName": "WVME",
+    "description": "wvme — Vulnerability Management & Security Scanning Platform. Automated security scanning, vulnerability lifecycle management, remediation workflows, and compliance reporting.",
+    "avatar": "🛡️",
+    "isBot": true,
+    "agentType": "autonomous",
+    "operator": "amanomibashira",
+    "capabilities": ["createScan", "listScans", "getScan", "listVulnerabilities", "getVulnerability", "createRemediation", "listRemediations", "getScanReport"],
+    "protocols": ["xrpc", "mcp"]
+  },
+  "governance": {
+    "raci": "responsible",
+    "classification": "public"
+  },
+  "triggers": {
+    "subscribeRepos": {
+      "collections": [
+        "com.etzhayyim.apps.wvme.scan",
+        "com.etzhayyim.apps.wvme.vulnerability"
+      ]
+    }
+  }
+}

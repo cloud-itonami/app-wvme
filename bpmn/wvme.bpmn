@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <!-- createScan -->
+  <bpmn:process id="wvme-create-scan" name="WVME Create Scan" isExecutable="true">
+    <bpmn:startEvent id="start-create-scan"/>
+    <bpmn:sequenceFlow id="sf-cs-1" sourceRef="start-create-scan" targetRef="task-create-scan"/>
+    <bpmn:serviceTask id="task-create-scan" name="Create Scan">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.create.scan"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-cs-2" sourceRef="task-create-scan" targetRef="end-create-scan"/>
+    <bpmn:endEvent id="end-create-scan"/>
+  </bpmn:process>
+
+  <!-- listScans -->
+  <bpmn:process id="wvme-list-scans" name="WVME List Scans" isExecutable="true">
+    <bpmn:startEvent id="start-list-scans"/>
+    <bpmn:sequenceFlow id="sf-ls-1" sourceRef="start-list-scans" targetRef="task-list-scans"/>
+    <bpmn:serviceTask id="task-list-scans" name="List Scans">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.list.scans"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-ls-2" sourceRef="task-list-scans" targetRef="end-list-scans"/>
+    <bpmn:endEvent id="end-list-scans"/>
+  </bpmn:process>
+
+  <!-- getScan -->
+  <bpmn:process id="wvme-get-scan" name="WVME Get Scan" isExecutable="true">
+    <bpmn:startEvent id="start-get-scan"/>
+    <bpmn:sequenceFlow id="sf-gs-1" sourceRef="start-get-scan" targetRef="task-get-scan"/>
+    <bpmn:serviceTask id="task-get-scan" name="Get Scan">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.get.scan"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-gs-2" sourceRef="task-get-scan" targetRef="end-get-scan"/>
+    <bpmn:endEvent id="end-get-scan"/>
+  </bpmn:process>
+
+  <!-- listVulnerabilities -->
+  <bpmn:process id="wvme-list-vulnerabilities" name="WVME List Vulnerabilities" isExecutable="true">
+    <bpmn:startEvent id="start-list-vulnerabilities"/>
+    <bpmn:sequenceFlow id="sf-lv-1" sourceRef="start-list-vulnerabilities" targetRef="task-list-vulnerabilities"/>
+    <bpmn:serviceTask id="task-list-vulnerabilities" name="List Vulnerabilities">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.list.vulnerabilities"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-lv-2" sourceRef="task-list-vulnerabilities" targetRef="end-list-vulnerabilities"/>
+    <bpmn:endEvent id="end-list-vulnerabilities"/>
+  </bpmn:process>
+
+  <!-- getVulnerability -->
+  <bpmn:process id="wvme-get-vulnerability" name="WVME Get Vulnerability" isExecutable="true">
+    <bpmn:startEvent id="start-get-vulnerability"/>
+    <bpmn:sequenceFlow id="sf-gv-1" sourceRef="start-get-vulnerability" targetRef="task-get-vulnerability"/>
+    <bpmn:serviceTask id="task-get-vulnerability" name="Get Vulnerability">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.get.vulnerability"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-gv-2" sourceRef="task-get-vulnerability" targetRef="end-get-vulnerability"/>
+    <bpmn:endEvent id="end-get-vulnerability"/>
+  </bpmn:process>
+
+  <!-- createRemediation -->
+  <bpmn:process id="wvme-create-remediation" name="WVME Create Remediation" isExecutable="true">
+    <bpmn:startEvent id="start-create-remediation"/>
+    <bpmn:sequenceFlow id="sf-cr-1" sourceRef="start-create-remediation" targetRef="task-create-remediation"/>
+    <bpmn:serviceTask id="task-create-remediation" name="Create Remediation">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.create.remediation"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-cr-2" sourceRef="task-create-remediation" targetRef="end-create-remediation"/>
+    <bpmn:endEvent id="end-create-remediation"/>
+  </bpmn:process>
+
+  <!-- listRemediations -->
+  <bpmn:process id="wvme-list-remediations" name="WVME List Remediations" isExecutable="true">
+    <bpmn:startEvent id="start-list-remediations"/>
+    <bpmn:sequenceFlow id="sf-lr-1" sourceRef="start-list-remediations" targetRef="task-list-remediations"/>
+    <bpmn:serviceTask id="task-list-remediations" name="List Remediations">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.list.remediations"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-lr-2" sourceRef="task-list-remediations" targetRef="end-list-remediations"/>
+    <bpmn:endEvent id="end-list-remediations"/>
+  </bpmn:process>
+
+  <!-- getScanReport -->
+  <bpmn:process id="wvme-get-scan-report" name="WVME Get Scan Report" isExecutable="true">
+    <bpmn:startEvent id="start-get-scan-report"/>
+    <bpmn:sequenceFlow id="sf-gsr-1" sourceRef="start-get-scan-report" targetRef="task-get-scan-report"/>
+    <bpmn:serviceTask id="task-get-scan-report" name="Get Scan Report">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.wvme.get.scanReport"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-gsr-2" sourceRef="task-get-scan-report" targetRef="end-get-scan-report"/>
+    <bpmn:endEvent id="end-get-scan-report"/>
+  </bpmn:process>
+
+</bpmn:definitions>

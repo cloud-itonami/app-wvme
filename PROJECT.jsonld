@@ -1,0 +1,78 @@
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "@id": "https://wvme.etzhayyim.com",
+  "name": "etzhayyim-project-wvme",
+  "description": "Etzhayyim WVME - Web Vulnerability Management Engine (OWASP/IPA compliant web application security testing)",
+  "url": "https://wvme.etzhayyim.com",
+  "applicationCategory": "Security",
+  "operatingSystem": "Kubernetes",
+  "author": {
+    "@type": "Organization",
+    "name": "etzhayyim",
+    "url": "https://etzhayyim.ai"
+  },
+  "component": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "wvme",
+      "description": "Backend API service - NestJS vulnerability scanning engine with App runtime integration",
+      "applicationCategory": "Backend",
+      "programmingLanguage": "TypeScript",
+      "runtimePlatform": "App runtime (Tier 2, Event-Driven)"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "wvme-web",
+      "description": "Next.js frontend for vulnerability scanning and reporting",
+      "applicationCategory": "Frontend",
+      "programmingLanguage": "TypeScript",
+      "runtimePlatform": "nginx (Tier 3, Static)"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "wvme-admin",
+      "description": "Next.js admin dashboard for scan management",
+      "applicationCategory": "Frontend",
+      "programmingLanguage": "TypeScript",
+      "runtimePlatform": "nginx (Tier 3, Static)"
+    }
+  ],
+  "rdfUnifiedDocuments": {
+    "@type": "Dataset",
+    "name": "Unified top-level RDF/JSON-LD documents",
+    "description": "Consolidated from project top-level *.jsonld files except PROJECT.jsonld.",
+    "documents": [
+      {
+        "fileName": "scheduler.jsonld",
+        "content": {
+          "@context": [
+            "https://schema.org/",
+            {
+              "etzhayyim": "https://etzhayyim.com/schemas/",
+              "capabilities": "etzhayyim:capabilities",
+              "survivalIndicators": "etzhayyim:survivalIndicators",
+              "scheduler": "etzhayyim:scheduler",
+              "milestones": "etzhayyim:milestones",
+              "blockers": "etzhayyim:blockers",
+              "dependsOn": {
+                "@id": "etzhayyim:dependsOn",
+                "@type": "@id"
+              },
+              "ingestKey": "etzhayyim:ingestKey",
+              "window": "etzhayyim:window",
+              "valueUpdatedAt": "etzhayyim:valueUpdatedAt"
+            }
+          ],
+          "@type": "CreativeWork",
+          "name": "etzhayyim-project-wvme Scheduler",
+          "identifier": "etzhayyim-project-wvme/scheduler",
+          "description": "Project schedule (milestones) and blockers.",
+          "dateCreated": "2026-02-15T04:25:26+00:00",
+          "milestones": [],
+          "blockers": []
+        }
+      }
+    ]
+  }
+}
