@@ -4,11 +4,11 @@
   "project": "etzhayyim-project-wvme",
   "name": "wvme-mcp-component",
   "kind": "appview",
-  "routeCount": 0,
-  "routes": [],
-  "vars": [],
+  "routeCount": 2,
+  "routes": ["vyie6ivw.etzhayyim.com/*","wvme.etzhayyim.com/*"],
+  "vars": ["AGENTGATEWAY_MCP_ROUTER_URL","APP_CAPABILITIES","APP_DESCRIPTION","APP_DISPLAY_NAME","APP_FRAMEWORK","APP_NANOID","APP_PERFORMER_TYPE","APP_UI_TYPE"],
   "xrpc": true,
-  "relativePath": "60-apps/etzhayyim-project-wvme/appview/wvme-mcp-component/svelte/src/routes/+page.svelte"
+  "relativePath": "appview/wvme-mcp-component/svelte/src/routes/+page.svelte"
 };
 </script>
 
