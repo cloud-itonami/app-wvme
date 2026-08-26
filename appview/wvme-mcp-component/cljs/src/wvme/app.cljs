@@ -1,0 +1,185 @@
+(ns wvme.app
+  "wvme-mcp-component appview frontend shell.
+
+  Migrated from the SvelteKit scaffold at appview/wvme-mcp-component/svelte
+  to reagent + re-frame, rendered with `jp-go-dds.core` (デジタル庁デザイン
+  システム) hiccup. The source was a single route,
+  `src/routes/+page.svelte` (84 lines) — a self-describing landing page that
+  reports this appview's own identity (title/project/name/kind), the public
+  routes and runtime var NAMES (never values) `wrangler.jsonc` declares next
+  to it, and its own source path — plus an inline `<style>` block (dark
+  background, a 3-column facts grid, bordered panels, monospace chips).
+
+  Ported one-to-one below:
+
+  - the `app` object → `default-db`, a re-frame app-db map instead of a
+    `<script>` tag literal, so there is real event/sub logic to test
+  - `<section class=\"top\">` → `top-section`
+  - `<section class=\"facts\">` (Project / Routes / XRPC) → `facts-section`
+  - the \"Public Routes\" panel, including its exact `{:else}` sentence
+    (\"No public route is declared next to this app surface.\") → `routes-panel`
+  - the \"Runtime Bindings\" panel, including its exact `{:else}` sentence
+    (\"No public vars are declared in the nearest wrangler config.\") → `vars-panel`
+  - the \"Source\" panel → `source-panel`
+  - `<svelte:head><title>{app.name}</title></svelte:head>` — `app.name` was a
+    static literal, so the equivalent `<title>` is set once in
+    `public/index.html` via `jp-go-dds.page/->page {:title ...}` rather than
+    mutated at runtime; there is nothing dynamic to reproduce.
+
+  The original's hand-rolled dark CSS (`#11161d` background, custom grid,
+  bordered `.panel`/`.facts div`) is replaced by `jp-go-dds.core` layout
+  primitives (`section`/`grid`/`card`/`chip-label`) per this workspace's base
+  design system (jp-go-dds, not liquid-glass, not app-authored CSS) — content
+  and structure are unchanged; only the presentation layer moved off
+  hand-rolled CSS onto the shared token/component set.
+
+  `default-db`'s `:app/relative-path` is updated to this file's new location.
+  The source page's own field named its OWN path, and this repository's
+  history (`059e0f4`, `scripts/gen-appview-page-summary.cljs`) already kept
+  that field in sync across an earlier move (from the source monorepo into
+  this repository) — this migration is the same kind of move, one level
+  further, so the field is updated the same way rather than left to name a
+  file that no longer exists.
+
+  `public/index.html`'s inlined <style> was produced once, at authoring
+  time, by `jp-go-dds.page/->page` running on the JVM (via this deps.edn's
+  jp-go-dds git/sha), concatenating the vendored `dds.css` with
+  `jp-go-dds.core/ext-css` — exactly what `jp-go-dds.page/page` composes for
+  its own <style> block (same recipe as
+  orgs/cloud-itonami/okaimono/appview/okaimono-shopping-mcp-component/cljs/src/okaimono/app.cljs).
+  This namespace itself only requires `jp-go-dds.core` — the browser bundle
+  does not need `jp-go-dds.page` at runtime; that is a JVM-only tool used to
+  author the static shell once. Regenerate that shell (e.g. if jp-go-dds's
+  core components or ext-rules change) with:
+
+    (require '[jp-go-dds.page :as page] '[clojure.java.io :as io])
+    (spit \"public/index.html\"
+          (page/->page {:title \"wvme-mcp-component\"
+                         :description \"Wvme Mcp Component appview frontend shell (reagent + re-frame + jp-go-dds).\"
+                         :css (slurp (io/resource \"jp_go_dds/dds.css\"))}
+                        [:div {:id \"app\"}]
+                        [:script {:src \"js/app.js\"}]))"
+  (:require [reagent.dom :as rdom]
+            [re-frame.core :as rf]
+            [jp-go-dds.core :as dds]))
+
+;; --- state --------------------------------------------------------------
+
+(def default-db
+  "Verbatim port of the `app` object src/routes/+page.svelte held as a
+  script-tag literal:
+
+    const app = {
+      \"title\": \"Wvme Mcp Component\",
+      \"project\": \"etzhayyim-project-wvme\",
+      \"name\": \"wvme-mcp-component\",
+      \"kind\": \"appview\",
+      \"routeCount\": 2,
+      \"routes\": [\"vyie6ivw.etzhayyim.com/*\",\"wvme.etzhayyim.com/*\"],
+      \"vars\": [\"AGENTGATEWAY_MCP_ROUTER_URL\",\"APP_CAPABILITIES\",\"APP_DESCRIPTION\",
+                 \"APP_DISPLAY_NAME\",\"APP_FRAMEWORK\",\"APP_NANOID\",
+                 \"APP_PERFORMER_TYPE\",\"APP_UI_TYPE\"],
+      \"xrpc\": true,
+      \"relativePath\": \"appview/wvme-mcp-component/svelte/src/routes/+page.svelte\"
+    };"
+  {:app/title "Wvme Mcp Component"
+   :app/project "etzhayyim-project-wvme"
+   :app/name "wvme-mcp-component"
+   :app/kind "appview"
+   :app/route-count 2
+   :app/routes ["vyie6ivw.etzhayyim.com/*" "wvme.etzhayyim.com/*"]
+   :app/vars ["AGENTGATEWAY_MCP_ROUTER_URL" "APP_CAPABILITIES" "APP_DESCRIPTION"
+              "APP_DISPLAY_NAME" "APP_FRAMEWORK" "APP_NANOID"
+              "APP_PERFORMER_TYPE" "APP_UI_TYPE"]
+   :app/xrpc? true
+   :app/relative-path "appview/wvme-mcp-component/cljs/src/wvme/app.cljs"})
+
+(rf/reg-event-db
+ :initialize-db
+ (fn [_ _] default-db))
+
+(rf/reg-sub :app/title (fn [db _] (:app/title db)))
+(rf/reg-sub :app/project (fn [db _] (:app/project db)))
+(rf/reg-sub :app/name (fn [db _] (:app/name db)))
+(rf/reg-sub :app/kind (fn [db _] (:app/kind db)))
+(rf/reg-sub :app/route-count (fn [db _] (:app/route-count db)))
+(rf/reg-sub :app/routes (fn [db _] (:app/routes db)))
+(rf/reg-sub :app/vars (fn [db _] (:app/vars db)))
+(rf/reg-sub :app/xrpc? (fn [db _] (:app/xrpc? db)))
+(rf/reg-sub :app/relative-path (fn [db _] (:app/relative-path db)))
+
+;; --- view -----------------------------------------------------------------
+
+(defn top-section
+  "Port of `<section class=\"top\">`: the kind label (\"Cloudflare {kind}\"),
+  the title as an `h1`, and the app name below it in monospace."
+  []
+  [:div {:class "dds-ext-stack"}
+   [:p {:class "dads-u-dns-14B-130"} (str "Cloudflare " @(rf/subscribe [:app/kind]))]
+   (dds/heading 1 @(rf/subscribe [:app/title]))
+   [:span {:class "dads-u-mono-16N-150"} @(rf/subscribe [:app/name])]])
+
+(defn facts-section
+  "Port of `<section class=\"facts\">`: the 3-column fact grid
+  (Project / Routes / XRPC)."
+  []
+  [dds/grid {:min "180px"}
+   [dds/card
+    [:span {:class "dads-u-dns-14B-130"} "Project"]
+    [:strong {:class "dads-u-mono-16N-150"} @(rf/subscribe [:app/project])]]
+   [dds/card
+    [:span {:class "dads-u-dns-14B-130"} "Routes"]
+    [:strong (str @(rf/subscribe [:app/route-count]))]]
+   [dds/card
+    [:span {:class "dads-u-dns-14B-130"} "XRPC"]
+    [:strong (if @(rf/subscribe [:app/xrpc?]) "enabled" "not configured")]]])
+
+(defn routes-panel
+  "Port of the \"Public Routes\" panel: a list of the routes wrangler
+  declares, or the exact `{:else}` sentence the original scaffold rendered
+  when the list is empty."
+  []
+  (let [routes @(rf/subscribe [:app/routes])]
+    [dds/card
+     (if (seq routes)
+       (into [:ul {:class "dads-list"}]
+             (map (fn [route] [:li {:class "dads-u-mono-16N-150"} route]) routes))
+       [:p {:class "dds-ext-lead"} "No public route is declared next to this app surface."])]))
+
+(defn vars-panel
+  "Port of the \"Runtime Bindings\" panel: a chip for each declared var
+  NAME (never its value), or the exact `{:else}` sentence."
+  []
+  (let [vars @(rf/subscribe [:app/vars])]
+    [dds/card
+     (if (seq vars)
+       (into [:div {:class "dds-ext-row"}]
+             (map (fn [k] [dds/chip-label k {:color "gray"}]) vars))
+       [:p {:class "dds-ext-lead"} "No public vars are declared in the nearest wrangler config."])]))
+
+(defn source-panel
+  "Port of the \"Source\" panel: this file's own relative path."
+  []
+  [dds/card
+   [:p {:class "dads-u-mono-16N-150"} @(rf/subscribe [:app/relative-path])]])
+
+(defn landing-page
+  "Port of `src/routes/+page.svelte`'s whole `<main>` body: top banner, facts
+  grid, then the three panels (Public Routes / Runtime Bindings / Source),
+  each titled the same way the original `<h2>`s were."
+  []
+  [dds/container
+   [top-section]
+   [facts-section]
+   [dds/section {:title "Public Routes"} [routes-panel]]
+   [dds/section {:title "Runtime Bindings"} [vars-panel]]
+   [dds/section {:title "Source"} [source-panel]]])
+
+;; --- mount ------------------------------------------------------------------
+
+(defn render []
+  (rdom/render [landing-page] (.getElementById js/document "app")))
+
+(defn ^:export main []
+  (rf/dispatch-sync [:initialize-db])
+  (render))
