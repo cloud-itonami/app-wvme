@@ -41,7 +41,9 @@ npm ci
 # ⚠ ビルドは repo-wide の resource governor を通す（CLAUDE.md）。直接叩かない。
 node <superproject>/scripts/resource-guard.mjs run build -- npm run build
 ```
-→ exit 0。`[:app] Build completed. (111 files, 110 compiled, 0 warnings, 58.75s)`。
+→ exit 0。`[:app] Build completed. (111 files, 110 compiled, 0 warnings)`。
+ファイル数と警告 0 は 2 回とも同じ値だった。**所要時間は書かない** —— このマシンは
+並行 agent で load が大きく振れ、同じ tree の同じビルドが 58.75s と 42.15s だった。
 出力は `public/js/`（`.gitignore` 済み。コミットしない）。
 
 ```bash
