@@ -1,0 +1,239 @@
+(ns wvme.repo-test
+  "**このリポジトリが自分について言っていることが、互いに一致しているか。**
+
+  app-wvme の identity（DID・nanoid・公開ルート・8 つの XRPC メソッド・
+  runtime var の名前）は、**7 つのファイルに別々に書かれている**:
+
+    src/app.ts                  ACTOR_DID / methods[] / nanoid の既定値
+    wrangler.jsonc              name / routes / vars.APP_CAPABILITIES / APP_NANOID
+    kotodama.jsonld             @id / nanoid / profile.capabilities
+    cljs/src/wvme/app.cljs      default-db の :app/routes / :app/vars / :app/route-count
+    PROJECT.jsonld              @id / url
+    README.md                   8 メソッドの一覧
+    README.edn                  repo の名前と kind
+
+  **どれ 1 つを書き換えても、他の 6 つは黙っている。** 既存のテストは 2 本とも
+  自分の側しか見ない —— cljs/test/wvme/app_test.cljs は `default-db` を
+  `default-db` と比べており（docstring は「wrangler.jsonc に対して
+  scripts/verify-appview-page-summary.cljs が検査する不変条件」と書いているが、
+  **その検査は superproject に在ってこのリポジトリには無い**）、
+  test/wvme.test.ts は Worker の中だけを見る。**ファイルとファイルの間を
+  見ているものが 1 つも無い。**
+
+  ここが見るのはその隙間だけである。実装の正しさ（Worker が 404 を返すか等）は
+  test/wvme.test.ts の担当で、ここでは重複させない。
+
+  ## 意図的に pin していないもの
+
+  **PROJECT.jsonld の `component` 配列は、このリポジトリに無いサービスを 3 つ
+  挙げている**（NestJS backend の `wvme`、Next.js frontend の `wvme-web`、
+  Next.js admin の `wvme-admin`）。これは README.md が『このリポジトリの実体』
+  節で記録している既知の齟齬（旧 README も同じ Next.js/Rust 構成を前提に
+  書かれていた）と同じもので、**まだ直っていない**。直っていないものを
+  「不変条件」として pin すると、この suite は最初から赤くなるか、さもなければ
+  誤りを正しさとして固定してしまう。よってここでは `@id` / `url` のような
+  **今日実際に成り立っている**部分だけを見る。component 配列の是正は別の作業。
+
+  実行:  nbb --classpath test run_tests.cljs"
+  (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is testing]]
+            [cljs.reader :as reader]
+            ["node:fs" :as fs]
+            ["node:path" :as path]))
+
+(def repo-root (.cwd js/process))
+
+(defn- slurp* [rel] (.readFileSync fs (path/join repo-root rel) "utf8"))
+(defn- json* [rel] (js->clj (.parse js/JSON (slurp* rel))))
+(defn- exists? [rel] (.existsSync fs (path/join repo-root rel)))
+
+(def appview "appview/wvme-mcp-component")
+
+(def wrangler  (json* (str appview "/wrangler.jsonc")))
+(def kotodama  (json* (str appview "/kotodama.jsonld")))
+(def project   (json* "PROJECT.jsonld"))
+(def readme    (slurp* "README.md"))
+(def worker-ts (slurp* (str appview "/src/app.ts")))
+(def app-cljs  (slurp* (str appview "/cljs/src/wvme/app.cljs")))
+(def readme-edn (reader/read-string (slurp* "README.edn")))
+
+;; ── src/app.ts から値を読む ─────────────────────────────────────────────────
+;;
+;; TypeScript を parse せず、**その値を宣言している 1 行**を正規表現で取る。
+;; 行が消えたら nil が返り、比較が落ちる —— 「読めなかった」が「一致した」と
+;; 同じ値にならないように、抽出できなかったことを独立に検査する
+;; (`the-worker-source-still-declares-the-values-this-suite-reads-from-it`)。
+
+(defn- ts-const [name]
+  (second (re-find (re-pattern (str "(?m)^const " name " = \"([^\"]+)\";")) worker-ts)))
+
+(def worker-actor-did (ts-const "ACTOR_DID"))
+(def worker-nsid-prefix (ts-const "NSID_PREFIX"))
+
+(def worker-nanoid-default
+  "`env.APP_NANOID ?? \"vyie6ivw\"` の右辺。env が無いときに Worker が名乗る値。"
+  (second (re-find #"env\.APP_NANOID \?\? \"([^\"]+)\"" worker-ts)))
+
+(def worker-dispatcher-default
+  (second (re-find #"env\.DISPATCHER_URL \?\? \"([^\"]+)\"" worker-ts)))
+
+(def worker-methods
+  "`methods: [...]` の中の文字列リテラル。順序を保つ。"
+  (when-let [block (second (re-find #"(?s)methods: \[(.*?)\]" worker-ts))]
+    (mapv second (re-seq #"\"([A-Za-z]+)\"" block))))
+
+;; ── cljs/src/wvme/app.cljs から default-db を読む ───────────────────────────
+;;
+;; ns 全体は reagent / re-frame / jp-go-dds を require するので nbb では読めない。
+;; `default-db` の map リテラルだけを取り出して EDN として読む。
+
+(def spa-default-db
+  (let [s   app-cljs
+        i   (str/index-of s "   :app/relative-path")
+        j   (when i (str/index-of s "}" i))
+        beg (str/index-of s "  {:app/title")]
+    (when (and beg j) (reader/read-string (subs s beg (inc j))))))
+
+(def wrangler-routes (mapv #(get % "pattern") (get wrangler "routes")))
+(def wrangler-var-names (vec (sort (keys (get wrangler "vars")))))
+
+(def wrangler-capabilities
+  "`vars.APP_CAPABILITIES` は JSON 文字列を値に持つ（wrangler の var は文字列だけ）。"
+  (js->clj (.parse js/JSON (get-in wrangler ["vars" "APP_CAPABILITIES"]))))
+
+(def kotodama-capabilities (get-in kotodama ["profile" "capabilities"]))
+
+(def readme-methods
+  "README の ``` ブロックが並べる 8 メソッド。`createScan / listScans / ...`。"
+  (when-let [block (second (re-find #"(?s)```\n(createScan.*?)\n```" readme))]
+    (->> (str/split block #"[/\n]")
+         (map str/trim)
+         (remove str/blank?)
+         vec)))
+
+;; ── その 1: この suite が読んでいる値が、実際に読めているか ─────────────────
+
+(deftest the-worker-source-still-declares-the-values-this-suite-reads-from-it
+  (testing "抽出が nil を返したら、以下の比較は全部『nil = nil』で緑になりうる。
+            **読めなかったことを、一致したことと同じ値にしない**（superproject
+            CLAUDE.md の evidence floor）。"
+    (is (some? worker-actor-did) "src/app.ts の `const ACTOR_DID = \"…\";` が読めない")
+    (is (some? worker-nsid-prefix) "src/app.ts の `const NSID_PREFIX = \"…\";` が読めない")
+    (is (some? worker-nanoid-default) "src/app.ts の `env.APP_NANOID ?? \"…\"` が読めない")
+    (is (some? worker-dispatcher-default) "src/app.ts の `env.DISPATCHER_URL ?? \"…\"` が読めない")
+    (is (= 8 (count worker-methods)) (str "src/app.ts の methods[] が 8 本でない: " (pr-str worker-methods)))
+    (is (some? spa-default-db) "cljs/src/wvme/app.cljs の default-db map が読めない")
+    (is (= 8 (count readme-methods)) (str "README の メソッド一覧が 8 本でない: " (pr-str readme-methods)))))
+
+;; ── その 2: 8 つのメソッド名 ────────────────────────────────────────────────
+
+(deftest the-eight-methods-are-the-same-list-in-all-four-files
+  (testing "公開メソッドは src/app.ts・wrangler.jsonc の APP_CAPABILITIES・
+            kotodama.jsonld の profile.capabilities・README の 4 箇所に
+            **別々に**書かれている。1 本足して 1 箇所しか直さない、が
+            この repo で最も起こりやすい drift（隣の cargo repo では
+            pipeline が 8 → 10 に増えたのを、走らない vitest が 2 年半
+            見逃した）。順序まで見るのは、4 つとも同じ順序で書かれており、
+            それが仕様の読み手にとっての順序だから。"
+    (is (= worker-methods wrangler-capabilities)
+        "src/app.ts の methods[] と wrangler.jsonc の APP_CAPABILITIES が違う")
+    (is (= worker-methods kotodama-capabilities)
+        "src/app.ts の methods[] と kotodama.jsonld の profile.capabilities が違う")
+    (is (= (set worker-methods) (set readme-methods))
+        "src/app.ts の methods[] と README の一覧が違う")))
+
+;; ── その 3: identity（DID / nanoid / host）─────────────────────────────────
+
+(deftest the-worker-answers-with-the-did-kotodama-declares
+  (testing "`/health` が名乗る ACTOR_DID は kotodama.jsonld の `@id` と同じ
+            actor でなければならない。ここが割れると、did:web を解決した
+            相手が別の descriptor を読む。"
+    (is (= worker-actor-did (get kotodama "@id")))))
+
+(deftest the-nanoid-is-the-same-string-in-every-place-that-spells-it
+  (testing "nanoid `vyie6ivw` は 5 箇所に現れる: Worker の既定値・
+            wrangler.jsonc の APP_NANOID・同 name (`kotodama-<nanoid>`)・
+            同 routes の 1 本目 (`<nanoid>.etzhayyim.com/*`)・
+            kotodama.jsonld の nanoid。**worker の既定値だけが env の無い
+            経路で使われる**ので、ここが古いと `/health` だけが別の id を名乗る。"
+    (let [id (get-in wrangler ["vars" "APP_NANOID"])]
+      (is (= id worker-nanoid-default) "src/app.ts の既定 nanoid が wrangler の APP_NANOID と違う")
+      (is (= id (get kotodama "nanoid")) "kotodama.jsonld の nanoid が wrangler の APP_NANOID と違う")
+      (is (= (str "kotodama-" id) (get wrangler "name")) "wrangler の name が `kotodama-<nanoid>` でない")
+      (is (some #(= % (str id ".etzhayyim.com/*")) wrangler-routes)
+          (str "routes に `" id ".etzhayyim.com/*` が無い: " (pr-str wrangler-routes))))))
+
+(deftest the-did-host-is-a-route-this-worker-actually-serves
+  (testing "did:web:<host> は `https://<host>/.well-known/did.json` に解決される。
+            その host が routes に無ければ、DID を解決した相手はこの Worker に
+            到達しない —— did document を書く前に、まず route が要る。"
+    (let [host (str/replace worker-actor-did #"^did:web:" "")]
+      (is (some #(= % (str host "/*")) wrangler-routes)
+          (str "ACTOR_DID の host `" host "` が routes に無い: " (pr-str wrangler-routes))))))
+
+(deftest the-project-jsonld-points-at-the-same-host-as-the-did
+  (testing "PROJECT.jsonld の @id / url は、Worker が名乗る DID の host と
+            同じ origin を指す。**component 配列はここでは見ない** —— ns の
+            docstring に書いたとおり、あれはまだ実体と合っていない。"
+    (let [origin (str "https://" (str/replace worker-actor-did #"^did:web:" ""))]
+      (is (= origin (get project "@id")))
+      (is (= origin (get project "url"))))))
+
+;; ── その 4: SPA の自己記述 vs wrangler ──────────────────────────────────────
+
+(deftest the-spa-landing-page-shows-the-routes-wrangler-actually-declares
+  (testing "cljs の landing page は『この appview の隣で wrangler が宣言している
+            公開ルート』を描画する。その配列は **手で写された定数**であり、
+            cljs/test/wvme/app_test.cljs はそれを自分自身と比べている
+            （docstring は superproject の verify-appview-page-summary.cljs を
+            指すが、その検査はこのリポジトリには無い）。**ここが、写した先と
+            写し元を突き合わせる唯一の場所。**"
+    (is (= wrangler-routes (:app/routes spa-default-db)))
+    (is (= (count wrangler-routes) (:app/route-count spa-default-db))
+        "route-count が routes の本数と合っていない")))
+
+(deftest the-spa-shows-every-var-name-wrangler-declares-and-no-value
+  (testing "panel は var の**名前だけ**を出す（値は出さない）。名前の集合が
+            wrangler と一致すること、そして **値が 1 つも紛れ込んでいない**
+            ことの両方を見る —— 後者はこの panel の存在理由そのもの。"
+    (is (= wrangler-var-names (:app/vars spa-default-db)))
+    (doseq [[k v] (get wrangler "vars")]
+      (is (not (some #(= % v) (:app/vars spa-default-db)))
+          (str "var `" k "` の**値**が :app/vars に入っている（名前だけを出す panel）")))))
+
+(deftest the-spa-names-its-own-source-path-and-that-file-exists
+  (testing "`:app/relative-path` はこのファイル自身の場所を指す。移動のたびに
+            手で更新されてきた（059e0f4 で 1 度、svelte→cljs の移行でもう 1 度）。
+            **実在を確かめる**ので、次の移動で更新を忘れたら赤くなる。"
+    (let [p (:app/relative-path spa-default-db)]
+      (is (= (str appview "/cljs/src/wvme/app.cljs") p))
+      (is (exists? p) (str "self-describe している path が実在しない: " p)))))
+
+;; ── その 5: 名乗り ──────────────────────────────────────────────────────────
+
+(deftest the-machine-readable-name-is-this-repository
+  (testing "README.edn は canonical metadata (:canonical-metadata :edn) を
+            名乗っているので、そこの :name が repo 名と食い違うと、機械が
+            読む側の正本が嘘になる。"
+    (is (= "app-wvme" (:name readme-edn)))
+    (is (= :app (:kind readme-edn)))))
+
+(deftest the-worker-only-proxies-its-own-nsid-namespace
+  (testing "NSID_PREFIX は kotodama の triggers が挙げる collection と同じ
+            名前空間でなければならない。ここが割れると、Worker は自分が
+            subscribe すると宣言した record 型を proxy できない。"
+    (let [collections (get-in kotodama ["triggers" "subscribeRepos" "collections"])]
+      (is (seq collections))
+      (doseq [c collections]
+        (is (str/starts-with? c worker-nsid-prefix)
+            (str "collection `" c "` が NSID_PREFIX `" worker-nsid-prefix "` の外に在る"))))))
+
+;; ── その 6: README が事実として述べていること ───────────────────────────────
+
+(deftest the-readme-claim-that-the-old-stack-is-absent-is-still-true
+  (testing "README の『このリポジトリの実体』節は、旧版が前提にしていた
+            `crates/` `supabase/` `next.config` `db/schema` が **0 件**だと
+            書いている。これは測って書かれた主張なので、測り直せる。
+            誰かがそれらを足したら README の側を直す番になる。"
+    (doseq [p ["crates" "supabase" "next.config.js" "next.config.mjs" "db/schema"]]
+      (is (not (exists? p)) (str "README は `" p "` が無いと書いているが在る")))))
