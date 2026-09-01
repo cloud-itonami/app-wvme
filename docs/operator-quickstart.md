@@ -54,19 +54,37 @@ node <superproject>/scripts/resource-guard.mjs run build -- npm test
 `re-frame: Subscribe was called outside of a reactive context.` が何度も出るが、
 これは警告で、終了コードには影響しない。
 
-## 2. Worker — 依存取得とテスト（動く。ただし中身は空）
+## 2. Worker — 依存取得とテスト（動く）
 
 ```bash
 cd appview/wvme-mcp-component
 npm ci && npm test
 ```
-→ exit 0。`Test Files 1 passed (1) / Tests 1 passed (1)`。
+→ exit 0。`Test Files 1 passed (1) / Tests 16 passed (16)`（実測 2026-09-02）。
 
-⚠ **この 1 本は `expect(true).toBe(true)` である。** `src/app.ts` の不変条件
-（`/xrpc/` の NSID prefix ゲート、壊れた JSON → 400、クエリと body の
-マージ順、secret binding と生文字列の出し分け、既定 404、`/health` の
-ペイロード）は **1 つも検査されていない**。緑は「壊れていない」ではなく
-「何も見ていない」を意味する。
+この 16 本が見ているのは `src/app.ts` の振る舞いだけ —— `/xrpc/` の NSID
+prefix ゲート、壊れた JSON → 400、GET/POST 以外 → 404、クエリと body の
+マージ順（body が勝つ）、secret binding と生文字列の出し分け、dispatcher の
+status と body の素通し、`/health` のペイロード。
+
+> **この 1 本は 2026-09-01 まで `expect(true).toBe(true)` だった。** vitest は
+> 動き、緑を出し、`1 passed` と報告し続けたが、`src/app.ts` をどう壊しても
+> 赤くならなかった。置き換えた 16 本は、`src/app.ts` を 9 通りに壊して
+> **9 通りとも、名指しした test が赤くなること**を確認してある。
+
+## 2.5 リポジトリ横断の自己記述検査（依存も network も要らない）
+
+```bash
+nbb --classpath test run_tests.cljs
+```
+→ exit 0。`Ran 12 tests containing 41 assertions` → `app-wvme self-description: all green`
+（実測 2026-09-02）。
+
+identity（DID・nanoid・公開ルート・8 つの XRPC メソッド・var 名）は
+**7 つのファイルに手で写されている**。この suite だけがその間を見る ——
+`src/app.ts` / `wrangler.jsonc` / `kotodama.jsonld` / `cljs/src/wvme/app.cljs` /
+`PROJECT.jsonld` / `README.md` / `README.edn`。12 本とも、対応する 1 箇所を
+壊して赤くなるところを実際に見てある。
 
 ## 3. 動かない手順 2 つ（実測。回避策はまだ無い）
 
@@ -125,18 +143,27 @@ dispatcher も存在しない**。3b を直してデプロイしても、Worker 
 
 ## 5. 次に触るなら（実測に基づく優先順）
 
-1. **`test/wvme.test.ts` の置き換え** — §2 のとおり現状は劇場。`src/app.ts` は
-   fetch ハンドラ 1 本なので、`Request` を組んで戻り値を見るだけで検査できる。
-2. **`tsconfig.json` の追加** — §3a。`typecheck` script は既に `package.json` に在る。
-3. **`wrangler.jsonc` に `main`** — §3b。修正内容は確認済みだが、本番ルートを
+1. **`tsconfig.json` の追加** — §3a。`typecheck` script は既に `package.json` に在る。
+2. **`wrangler.jsonc` に `main`** — §3b。修正内容は確認済みだが、本番ルートを
    持つので独立した判断で当てる。
+3. **`PROJECT.jsonld` の `component`** — このリポジトリに無い 3 サービス
+   （NestJS backend、Next.js の web / admin）を挙げたまま。旧 README と同じ齟齬で、
+   §2.5 の suite が意図的に pin していない唯一の箇所（直っていないものを不変条件に
+   すると、誤りを正しさとして固定してしまう）。
 4. **dispatcher の所在確認** — §4。無いものへ中継する設計のまま進めない。
+
+> **旧 1 番目「`test/wvme.test.ts` の置き換え」は 2026-09-02 に済んだ**（§2）。
 
 ## 6. 検査の在り処
 
-- SPA のテスト: `appview/wvme-mcp-component/cljs/test/wvme/app_test.cljs`
-- Worker のテスト: `appview/wvme-mcp-component/test/wvme.test.ts`（プレースホルダ）
-- どちらも **fleet の成熟度スキャナには数えられていない**。スキャナが `test/` を
-  数えるのはリポジトリ直下と、`deps.edn` を持つ第 1 階層のディレクトリ配下だけで、
-  ここの `deps.edn` は第 3 階層 (`appview/wvme-mcp-component/cljs/`) に在るため。
-  テストが無いのではなく、見えていない。
+- 横断（自己記述の一貫性）: `test/wvme/repo_test.cljs` — 走らせるのはルートの
+  `run_tests.cljs`
+- Worker: `appview/wvme-mcp-component/test/wvme.test.ts`
+- SPA: `appview/wvme-mcp-component/cljs/test/wvme/app_test.cljs`
+
+後ろの 2 つは **fleet の成熟度スキャナには数えられていない**。スキャナが `test/`
+を数えるのはリポジトリ直下と、`deps.edn` を持つ第 1 階層のディレクトリ配下だけで、
+ここの `deps.edn` は第 3 階層 (`appview/wvme-mcp-component/cljs/`) に在るため。
+テストが無いのではなく、見えていない。ルートの suite はリポジトリ直下に在るので
+数えられるが、**そこに置いたのは数えられるためではなく、見ている対象がリポジトリ
+全体をまたぐから**である（どのサブパッケージからも、隣のファイルが見えない）。

@@ -32,17 +32,26 @@ Webアプリケーション脆弱性診断サービスの、**仕様と appview�
 > コードがここに無いため裏付けが取れない。実装の現在地は
 > `docs/operator-quickstart.md` を正とする。
 
-## appview の構成
+## 検査の構成（3 つの suite が、3 つの別のものを見る）
 
 ```
+run_tests.cljs            リポジトリ横断の自己記述の一貫性（nbb + cljs.test）
+└── test/wvme/repo_test.cljs   7 ファイルに写された identity を突き合わせる
+
 appview/wvme-mcp-component/
 ├── src/app.ts          Cloudflare Worker（edge dispatcher）
-├── test/wvme.test.ts   vitest（⚠ 現状はプレースホルダ 1 本）
+├── test/wvme.test.ts   vitest — Worker の routing / error shape / 転送規則
 ├── wrangler.jsonc      ルート・vars・assets 設定
 └── cljs/               SPA（shadow-cljs）
     ├── src/wvme/app.cljs
-    └── test/wvme/app_test.cljs
+    └── test/wvme/app_test.cljs   re-frame の event / sub
 ```
+
+**ルートの suite が在るのは、identity がどのサブパッケージにも属さないから。**
+DID・nanoid・公開ルート・8 メソッド・var 名は 7 つのファイルに手で写されて
+おり、Worker の vitest から `PROJECT.jsonld` は見えず、cljs の suite から
+`wrangler.jsonc` は見えない。ファイルとファイルの**間**を見る場所が、ここまで
+1 つも無かった。
 
 Worker 自身は診断ロジックを持たない。`/xrpc/com.etzhayyim.apps.wvme.*` を
 `DISPATCHER_URL` へ中継し、それ以外は 404 を返す。公開する 8 メソッド:
@@ -68,6 +77,9 @@ node <superproject>/scripts/resource-guard.mjs run build -- npm test
 
 # Worker
 cd appview/wvme-mcp-component && npm ci && npm test
+
+# リポジトリ横断の自己記述検査（依存も network も要らない）
+nbb --classpath test run_tests.cljs
 ```
 
 **既知の欠陥（実測、未修正）** — 詳細と原因の切り分けは quickstart の §3〜§4:
@@ -78,7 +90,14 @@ cd appview/wvme-mcp-component && npm ci && npm test
 3. `wvme.etzhayyim.com` / `vyie6ivw.etzhayyim.com` / `dispatcher.etzhayyim.com` /
    `mcp.etzhayyim.com` は **4 つとも DNS に存在しない**（ゾーン頂点
    `etzhayyim.com` は解決するので、これは未測定ではなく不在）
-4. `test/wvme.test.ts` は `expect(true).toBe(true)` — 落ちようがない
+4. `PROJECT.jsonld` の `component` は、このリポジトリに無い 3 サービス
+   （NestJS backend の `wvme`、Next.js の `wvme-web` / `wvme-admin`）を挙げた
+   ままである。旧 README と同じ齟齬で、まだ直っていない
+
+> **旧 4 番目「`test/wvme.test.ts` は `expect(true).toBe(true)` — 落ちようがない」は
+> 2026-09-02 に解消した。** 16 本の実テストに置き換え、`src/app.ts` を 9 通りに
+> 壊して 9 通りとも赤くなることを確認している（落ちるところを見ていない検査は劇場、
+> という `scripts/maturity-loop` の考え方）。
 
 ## 診断できる脆弱性（仕様上）
 

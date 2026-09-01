@@ -1,0 +1,42 @@
+#!/usr/bin/env nbb
+;; run_tests.cljs — このリポジトリが自分について言っていることの一貫性検査。
+;;
+;;   nbb --classpath test run_tests.cljs
+;;
+;; ## なぜリポジトリのルートに在るか
+;;
+;; app-wvme のテストは 2026-08 まで 2 本あり、**どちらも 1 つのファイルの中しか
+;; 見ていなかった**:
+;;
+;;   appview/wvme-mcp-component/test/wvme.test.ts        → `expect(true).toBe(true)`
+;;   appview/wvme-mcp-component/cljs/test/…/app_test.cljs → default-db を default-db と比べる
+;;
+;; ところがこの repo の identity（DID・nanoid・公開ルート・8 つの XRPC メソッド・
+;; var 名）は **7 つのファイルに手で写されている**。どのサブパッケージも、その
+;; 隙間を所有していない —— Worker の vitest から `PROJECT.jsonld` は見えないし、
+;; cljs の shadow-cljs suite から `wrangler.jsonc` は見えない。
+;;
+;; **リポジトリ全体をまたぐ不変条件なので、リポジトリのルートに置く。**
+;; 実装の振る舞い（404 / 400 / proxy）は各サブパッケージの suite が持つ。
+;;
+;; script host が nbb + cljs.test なのは workspace の規則（superproject CLAUDE.md
+;; 「運用 tooling の script host は nbb のみ」。新規の .sh / .mjs / .cjs は禁止）。
+;; 同じ形の先行例が orgs/cloud-itonami/cargo の run_tests.cljs。
+(ns run-tests
+  (:require [clojure.test :as t]
+            [wvme.repo-test]))
+
+(def green-marker
+  "scripts/maturity-loop/mutations.edn の `:green-marker`。**全部緑のときだけ**
+  印字する —— 赤でも出してしまうと、mutation が噛んだかどうかを出力から
+  判定できなくなる（run.cljs は exit code を第一の根拠にするが、マーカーは
+  その裏取りに使われる）。"
+  "app-wvme self-description: all green")
+
+(defmethod t/report [:cljs.test/default :end-run-tests] [m]
+  (if (t/successful? m)
+    (println (str "\n" green-marker))
+    (do (println "\napp-wvme self-description: FAILED")
+        (js/process.exit 1))))
+
+(t/run-tests 'wvme.repo-test)
