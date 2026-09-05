@@ -13,6 +13,12 @@ Webアプリケーション脆弱性診断サービスの、**仕様と appview�
 (2) appview の edge 層だけで、実際に診断を行うサービス（`scanner` /
 `zaproxy` / `browserless-rs`）は別の場所に在る。追跡ファイルは 30 件:
 
+> **ZAP 相当の DAST 判定核は 2026-09-06 に着地した:**
+> [`kotoba-lang/zap-proxy`](https://github.com/kotoba-lang/zap-proxy)
+>（superproject `orgs/kotoba-lang/zap-proxy`、ADR-2609060001）。spider /
+> passive / active / report の pure 判定核 + CLI。本リポジトリの dispatcher
+> からの呼び出し経路（`DISPATCHER_URL` 先の scanner orchestration）は未着手。
+
 | 何 | どこ | 中身 |
 |---|---|---|
 | **診断仕様** | `SPEC.tsv` | IPA/OWASP に対応する診断項目 125 行（大分類・中分類・診断方法） |

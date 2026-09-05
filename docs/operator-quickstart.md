@@ -11,6 +11,9 @@
 
 > ⚠ **このリポジトリは仕様と appview の入口だけを持つ。** README が挙げる
 > スキャナ本体（`scanner` / `zaproxy` / `browserless-rs`）はここには無い。
+> ZAP 相当の DAST 判定核は 2026-09-06 に `kotoba-lang/zap-proxy`
+>（https://github.com/kotoba-lang/zap-proxy、ADR-2609060001）に着地した。
+> dispatcher からの呼び出し経路は未着手。
 > 何が在って何が無いかは [README.md](../README.md) の「このリポジトリの実体」を見る。
 
 ## 0. 全体像 — 触れるものは 2 つ
