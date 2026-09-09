@@ -35,7 +35,7 @@
   **今日実際に成り立っている**部分だけを見る。component 配列の是正は別の作業。
 
   実行:  nbb --classpath test run_tests.cljs"
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [clojure.test :refer [deftest is testing]]
             [cljs.reader :as reader]
             ["node:fs" :as fs]
