@@ -49,6 +49,6 @@
   (testing "relativePath was updated off the deleted svelte source path, the
             same way an earlier commit in this repo kept it in sync with a
             move (059e0f4, scripts/gen-appview-page-summary.cljs)"
-    (is (= "appview/wvme-mcp-component/cljs/src/wvme/app.cljs"
+    (is (= "appview/wvme-mcp-component/cljs/src/wvme/app.cljk"
            (:app/relative-path app/default-db)))
     (is (not (re-find #"svelte" (:app/relative-path app/default-db))))))
