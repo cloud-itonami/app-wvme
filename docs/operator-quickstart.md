@@ -78,7 +78,7 @@ status と body の素通し、`/health` のペイロード。
 ## 2.5 リポジトリ横断の自己記述検査（依存も network も要らない）
 
 ```bash
-nbb --classpath test run_tests.cljs
+nbb --classpath test run_tests.cljk
 ```
 → exit 0。`Ran 12 tests containing 41 assertions` → `app-wvme self-description: all green`
 （実測 2026-09-02）。
@@ -159,10 +159,10 @@ dispatcher も存在しない**。3b を直してデプロイしても、Worker 
 
 ## 6. 検査の在り処
 
-- 横断（自己記述の一貫性）: `test/wvme/repo_test.cljs` — 走らせるのはルートの
-  `run_tests.cljs`
+- 横断（自己記述の一貫性）: `test/wvme/repo_test.cljk` — 走らせるのはルートの
+  `run_tests.cljk`
 - Worker: `appview/wvme-mcp-component/test/wvme.test.ts`
-- SPA: `appview/wvme-mcp-component/cljs/test/wvme/app_test.cljs`
+- SPA: `appview/wvme-mcp-component/cljs/test/wvme/app_test.cljk`
 
 後ろの 2 つは **fleet の成熟度スキャナには数えられていない**。スキャナが `test/`
 を数えるのはリポジトリ直下と、`deps.edn` を持つ第 1 階層のディレクトリ配下だけで、

@@ -19,7 +19,7 @@
 // 合流規則・dispatcher への転送。
 //
 // **identity（DID / nanoid / 8 メソッド / routes）が他のファイルと一致するかは
-// ここでは見ない** —— それは repo のルートの `run_tests.cljs` が持つ。
+// ここでは見ない** —— それは repo のルートの `run_tests.cljk` が持つ。
 // ここから PROJECT.jsonld も cljs/src も見えないので、見えるふりをしない。
 
 import { describe, it, expect, vi, afterEach } from "vitest";

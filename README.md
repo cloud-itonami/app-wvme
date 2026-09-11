@@ -41,8 +41,8 @@ Webアプリケーション脆弱性診断サービスの、**仕様と appview�
 ## 検査の構成（3 つの suite が、3 つの別のものを見る）
 
 ```
-run_tests.cljs            リポジトリ横断の自己記述の一貫性（nbb + cljs.test）
-└── test/wvme/repo_test.cljs   7 ファイルに写された identity を突き合わせる
+run_tests.cljk            リポジトリ横断の自己記述の一貫性（nbb + cljs.test）
+└── test/wvme/repo_test.cljk   7 ファイルに写された identity を突き合わせる
 
 appview/wvme-mcp-component/
 ├── src/app.ts          Cloudflare Worker（edge dispatcher）
@@ -85,7 +85,7 @@ node <superproject>/scripts/resource-guard.mjs run build -- npm test
 cd appview/wvme-mcp-component && npm ci && npm test
 
 # リポジトリ横断の自己記述検査（依存も network も要らない）
-nbb --classpath test run_tests.cljs
+nbb --classpath test run_tests.cljk
 ```
 
 **既知の欠陥（実測、未修正）** — 詳細と原因の切り分けは quickstart の §3〜§4:

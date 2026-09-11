@@ -1,7 +1,7 @@
 #!/usr/bin/env nbb
-;; run_tests.cljs — このリポジトリが自分について言っていることの一貫性検査。
+;; run_tests.cljk — このリポジトリが自分について言っていることの一貫性検査。
 ;;
-;;   nbb --classpath test run_tests.cljs
+;;   nbb --classpath test run_tests.cljk
 ;;
 ;; ## なぜリポジトリのルートに在るか
 ;;
@@ -21,7 +21,7 @@
 ;;
 ;; script host が nbb + cljs.test なのは workspace の規則（superproject CLAUDE.md
 ;; 「運用 tooling の script host は nbb のみ」。新規の .sh / .mjs / .cjs は禁止）。
-;; 同じ形の先行例が orgs/cloud-itonami/cargo の run_tests.cljs。
+;; 同じ形の先行例が orgs/cloud-itonami/cargo の run_tests.cljk。
 (ns run-tests
   (:require [clojure.test :as t]
             [wvme.repo-test]))
