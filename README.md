@@ -85,7 +85,7 @@ node <superproject>/scripts/resource-guard.mjs run build -- npm test
 cd appview/wvme-mcp-component && npm ci && npm test
 
 # リポジトリ横断の自己記述検査（依存も network も要らない）
-nbb --classpath test run_tests.cljk
+kbb --backend sci --classpath test run_tests.cljk
 ```
 
 **既知の欠陥（実測、未修正）** — 詳細と原因の切り分けは quickstart の §3〜§4:

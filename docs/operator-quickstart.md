@@ -78,7 +78,7 @@ status と body の素通し、`/health` のペイロード。
 ## 2.5 リポジトリ横断の自己記述検査（依存も network も要らない）
 
 ```bash
-nbb --classpath test run_tests.cljk
+kbb --backend sci --classpath test run_tests.cljk
 ```
 → exit 0。`Ran 12 tests containing 41 assertions` → `app-wvme self-description: all green`
 （実測 2026-09-02）。
