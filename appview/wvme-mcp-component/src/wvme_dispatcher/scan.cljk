@@ -1,0 +1,112 @@
+(ns wvme-dispatcher.scan
+  "Scan execution + the in-memory registry.
+
+  The pure decision core (kotoba-lang/zap-proxy) drives an injected
+  fetch-fn synchronously. Real HTTP is promise-shaped, so this module
+  PRE-FETCHES the crawl: collect pages with awaited fetches one at a
+  time — same-origin BFS, reusing the pure core's
+  spider/extract-candidates and core/same-origin? verbatim — then hand
+  the collected pages to cli/scan as its fetch-fn results. The core's
+  fetch-fn here is `(constantly (get pages url))` and never touches the
+  network; all network effects live in prefetch. active? is refused
+  with a typed error, never silently downgraded.
+
+  The scan id is the sha256 of the report JSON: the same request
+  re-answered is the same id, so listScans stays honest about what ran.
+  report-edn needs :started-at — it is minted once, before the
+  fetches; the id covers the report CONTENT."
+  (:require [kotoba.zap-proxy.spider :as spider]
+            [kotoba.zap-proxy.core :as core]
+            [kotoba.zap-proxy.cli :as zap-cli]))
+
+(defn new-store [] (atom {:scans [] :by-id {}}))
+
+(defn- as-buffer [x] (js/Buffer.from (str x) "utf8"))
+
+(defn sha256-hex
+  "Lowercase hex sha256 of a string (Node crypto)."
+  [s]
+  (let [h (.createHash (js/require "node:crypto") "sha256")]
+    (.update h (as-buffer s))
+    (.digest h "hex")))
+
+(defn- fetch-page
+  "One URL -> response-map over Node fetch. Resolves to
+  {:status :headers :body :url}."
+  [url]
+  (.then (js/fetch url #js {:method "GET"})
+         (fn [resp]
+           (.then (.text resp)
+                  (fn [text]
+                    {:status  (.-status resp)
+                     :headers (js->clj (.-headers resp) :keywordize-keys false)
+                     :body    text
+                     :url     url})))))
+
+(defn- crawl!
+  "Pre-fetch the crawl: same-origin BFS, one awaited fetch at a time.
+  Returns a promise resolving to {url response-map}. Link extraction
+  and the origin policy are the pure core's own functions, verbatim."
+  [seed-url max-pages]
+  (let [step (fn step [pages-acc queue visited]
+               (cond
+                 (empty? queue)
+                 (js/Promise.resolve pages-acc)
+
+                 (>= (count pages-acc) max-pages)
+                 (js/Promise.resolve pages-acc)
+
+                 :else
+                 (let [url (first queue)]
+                   (if (or (contains? visited url) (not (core/same-origin? seed-url url)))
+                     (step pages-acc (rest queue) visited)
+                     (.then (fetch-page url)
+                            (fn [resp]
+                              (let [new (vec (spider/extract-candidates seed-url (get resp :body "")))
+                                    new (filter #(core/same-origin? seed-url %) new)]
+                                (step (conj pages-acc [url resp])
+                                      (into (vec (rest queue)) new)
+                                      (conj visited url)))))))))]
+    (step [] [seed-url] #{})))
+
+(defn run
+  "Execute a scan. Returns a JS Promise resolving to
+  {:scan-id :target :report :started-at :active?}."
+  [{:keys [target active? max-pages] :or {active? false max-pages 50}}]
+  (if active?
+    (.reject (js/Promise.)
+             (ex-info "active scanning is not offered by the dispatcher"
+                      {:type :wvme/active-not-offered
+                       :hint "passive-only; the decision core supports it but the dispatcher does not expose it yet"}))
+    (let [started-at (str (js/Date.now))]
+      (.then (crawl! target max-pages)
+             (fn [pages]
+               (let [pages-map (into {} pages)
+                     fetch-fn  (fn [req] (get pages-map (:url req) {:status 404 :headers {} :body ""}))
+                     report    (zap-cli/scan
+                                {:target target :fetch-fn fetch-fn :active? false
+                                 :max-pages max-pages :started-at started-at})
+                     json      (js/JSON.stringify (clj->js report))
+                     scan-id   (sha256-hex json)]
+                 {:scan-id scan-id :target target :report report
+                  :started-at started-at :active? false}))))))
+
+(defn store-scan!
+  "Record a scan result in the registry. Newest first; by-id deduped."
+  [store {:keys [scan-id] :as result}]
+  (swap! store (fn [{:keys [scans by-id]}]
+                 {:scans (conj scans result)
+                  :by-id (assoc by-id scan-id result)}))
+  result)
+
+(defn get-scan [store scan-id] (get (:by-id @store) scan-id))
+
+(defn list-scans
+  "Summary list — target, id, counts. Not the full report."
+  [store]
+  (mapv (fn [{:keys [scan-id target report]}]
+          {:scan-id scan-id
+           :target target
+           :total (:report/total report)
+           :counts (:report/counts report)})
+        (:scans @store)))
