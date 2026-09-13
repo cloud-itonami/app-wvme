@@ -1,0 +1,26 @@
+;; in-process E2E over a mock res pair — the same handler the real server
+;; binds. A REAL socket E2E runs against the live server below (manual).
+(ns wvme-dispatcher.e2e-test
+  (:require [clojure.test :refer [deftest is]]
+            [kotoba.lang.text :as str]
+            [wvme-dispatcher.server :as server]
+            [wvme-dispatcher.scan :as scan]))
+
+(defn- mock-res []
+  (let [res (js-obj "statusCode" 0)]
+    (set! (.-end res) (fn [body]
+                        (set! (.-body res) body)))
+    res))
+
+(deftest health-route-answers
+  (let [store (scan/new-store)
+        res   (mock-res)]
+    (server/handle-request store (js-obj "url" "/health" "method" "GET") res)
+    (is (= 200 (.-statusCode res)))
+    (is (str/includes? (.-body res) "wvme-dispatcher"))))
+
+(deftest unknown-path-404s
+  (let [store (scan/new-store)
+        res   (mock-res)]
+    (server/handle-request store (js-obj "url" "/nope" "method" "GET") res)
+    (is (= 404 (.-statusCode res)))))

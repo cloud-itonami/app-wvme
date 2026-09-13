@@ -1,0 +1,93 @@
+(ns wvme-dispatcher.server
+  "The HTTP server the edge Worker's DISPATCHER_URL points at.
+
+  Node's http module; one route family (/xrpc/com.etzhayyim.apps.wvme.*)
+  plus /health. Body parse errors answer 400 InvalidJson, exactly the
+  shape the edge tests pin on the Worker side. Run:
+    kbb --backend sci appview/wvme-mcp-component/src/wvme_dispatcher/server.cljk [port]
+  Default port 8081."
+  (:require [kotoba.lang.text :as str]
+            [wvme-dispatcher.methods :as methods]
+            [wvme-dispatcher.scan :as scan]))
+
+(def default-port 8081)
+
+(defn- read-raw
+  "Collect a request body as a UTF-8 string. Calls back with the string.
+  A req without .on (the in-process test mock) gets the empty body
+  immediately — the real socket always has .on."
+  [req cb]
+  (if (.-on ^js req)
+    (let [chunks (array)]
+      (.on req "data" (fn [c] (.push chunks c)))
+      (.on req "end"
+           (fn []
+             (let [buffers (js/Array.from (map (fn [c] (js/Buffer.from (str c))) chunks))]
+               (cb (.toString (js/Buffer.concat buffers) "utf8"))))))
+    (cb "")))
+
+(defn- send-json
+  "Serialize the method result. A :status key selects the HTTP status
+  and is stripped from the body — the edge Worker passes status+body
+  straight through."
+  [res out]
+  (set! (.-statusCode res) (or (:status out) 200))
+  (.end res (js/JSON.stringify (clj->js (dissoc out :status)))))
+
+(defn handle-request
+  "Route one request. Returns true when handled (the server test uses
+  this against a mock res)."
+  [store req res]
+  (let [url  (.-url req)
+        qpos (or (str/index-of url "?") (count url))
+        path (subs url 0 qpos)
+        nsid (when (str/starts-with? path "/xrpc/")
+               (subs path (count "/xrpc/")))]
+    (println "[wvme-dispatcher]" (.-method req) path)
+    (read-raw req
+              (fn [raw]
+                (let [body (try
+                             (when-not (str/blank? raw) (js->clj (js/JSON.parse raw)))
+                             (catch :default _ ::invalid))]
+                  (cond
+                    (= path "/health")
+                    (do (set! (.-statusCode res) 200)
+                        (.end res (js/JSON.stringify
+                                   (clj->js {:ok true
+                                             :server "wvme-dispatcher"
+                                             :methods methods/method-names}))))
+
+                    (str/starts-with? (or nsid "") methods/nsid-prefix)
+                    (if (= body ::invalid)
+                      (do (set! (.-statusCode res) 400)
+                          (.end res (js/JSON.stringify (clj->js {:error "InvalidJson"}))))
+                      (let [method (subs nsid (count methods/nsid-prefix))
+                            out    (methods/dispatch store method (or body {}))]
+                        (if (.-then ^js out)
+                          (.then out #(send-json res %))
+                          (send-json res out))))
+
+                    :else
+                    (do (set! (.-statusCode res) 404)
+                        (.end res (js/JSON.stringify (clj->js {:error "NotFound"}))))))))
+    true))
+
+(defn start
+  "Create and bind the server. Returns it (tests bind port 0 and read
+  the real port back)."
+  [port]
+  (let [http   (js/require "node:http")
+        store  (scan/new-store)
+        server (.createServer http (fn [req res] (handle-request store req res)))]
+    (.listen server port)
+    server))
+
+(defn- main-args? []
+  (let [argv (.-argv js/process)]
+    (and (some? argv)
+         (some #(and (string? %) (str/ends-with? % "server.cljk")) (js->clj argv)))))
+
+(when (main-args?)
+  (let [port (or (some-> (nth (.-argv js/process) 3 nil) js/parseInt) default-port)]
+    (start port)
+    (println "wvme-dispatcher listening on" port)))

@@ -1,5 +1,6 @@
 {
   "name": "kotodama-vyie6ivw",
+  "main": "src/app.ts",
   "compatibility_date": "2025-03-17",
   "compatibility_flags": [
     "nodejs_compat",

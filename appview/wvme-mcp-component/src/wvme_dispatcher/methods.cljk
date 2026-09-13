@@ -1,0 +1,73 @@
+(ns wvme-dispatcher.methods
+  "The 8 XRPC methods the edge Worker proxies. This is the dispatcher
+  half of the contract the Worker's vitest pins on the edge side.
+
+  createScan runs the scan and records it; listScans / getScan /
+  getScanReport read the registry. The remediation family
+  (createRemediation / listRemediations / getVulnerability /
+  listVulnerabilities) answers a typed :method-not-implemented with an
+  explicit :status — a method that says it will come later, not one
+  that pretends to have run. Every response is a map the server
+  serializes as JSON; a :status key selects the HTTP status (absent =
+  200)."
+  (:require [kotoba.lang.text :as str]
+            [wvme-dispatcher.scan :as scan]))
+
+(def nsid-prefix "com.etzhayyim.apps.wvme.")
+
+(def method-names
+  ["createScan" "listScans" "getScan" "listVulnerabilities"
+   "getVulnerability" "createRemediation" "listRemediations" "getScanReport"])
+
+(defn- ok [body] body)
+
+(defn- not-implemented [method]
+  {:error "MethodNotImplemented"
+   :method method
+   :hint "declared in the Worker's capability list, not built in the dispatcher yet"
+   :status 501})
+
+(defn dispatch
+  "One method (the nsid minus the prefix) against the store.
+  `scan/run` returns a promise, so createScan returns one too — the
+  server serializes in its .then. Synchronous methods return plain maps."
+  [store method body]
+  (case method
+    "createScan"
+    ;; JSON bodies travel with STRING keys (the server's js->clj does not
+    ;; keywordize — clojure.data.json's default, which the edge Worker's
+    ;; vitest pins on the proxy side). Read both faces; keyword keys win
+    ;; when a caller speaks EDN.
+    (let [target (or (:target body) (get body "target"))]
+      (cond
+        (str/blank? (str target))
+        {:error "InvalidRequest" :hint ":target (a URL) is required" :status 400}
+
+        (not (or (str/starts-with? (str target) "http://")
+                 (str/starts-with? (str target) "https://")))
+        {:error "InvalidRequest" :hint ":target must be an http(s) URL" :status 400}
+
+        :else
+        (.then (scan/run {:target (str target) :active? false})
+               (fn [result]
+                 (scan/store-scan! store result)
+                 {:scan-id (:scan-id result)
+                  :target (:target result)
+                  :total (:report/total (:report result))
+                  :counts (:report/counts (:report result))}))))
+
+    "listScans"     (ok {:scans (scan/list-scans store)})
+    "getScan"       (if-let [s (scan/get-scan store (or (:scan-id body) (get body "scan-id")))]
+                      (ok {:scan-id (:scan-id s) :target (:target s)
+                           :report (:report s)})
+                      {:error "ScanNotFound" :status 404})
+    "getScanReport" (if-let [s (scan/get-scan store (or (:scan-id body) (get body "scan-id")))]
+                      (ok {:scan-id (:scan-id s) :report (:report s)})
+                      {:error "ScanNotFound" :status 404})
+
+    "listVulnerabilities" (not-implemented method)
+    "getVulnerability"    (not-implemented method)
+    "createRemediation"   (not-implemented method)
+    "listRemediations"    (not-implemented method)
+
+    {:error "MethodNotFound" :method (str method) :status 404}))

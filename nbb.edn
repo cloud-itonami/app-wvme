@@ -1,6 +1,10 @@
-{:paths ["test"]
+{:paths ["test" "appview/wvme-mcp-component/cljs/src" "appview/wvme-mcp-component/src"]
  :deps {
         ;; kotoba.lang.text, not clojure.string. Pinned as an explicit floor:
         ;; tools.deps takes the NEWEST sha it is shown, so without a floor here
         ;; this repo silently rides whatever a sibling happens to name.
-        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}}}
+        io.github.kotoba-lang/text {:git/sha "73bdb13ae7a3d004b44bca08be03a3191157a38f"}
+        ;; the dispatcher's scan decision core (zap-proxy) — the pure
+        ;; spider/passive/report namespaces. :local/root, sibling checkout;
+        ;; its own nbb.edn carries its text pin (kotoba-lang/zap-proxy 0f9231b).
+        io.github.kotoba-lang/zap-proxy {:local/root "../../kotoba-lang/zap-proxy"}}}
