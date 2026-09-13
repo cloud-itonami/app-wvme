@@ -38,3 +38,4 @@ supabase/migrations/.temp/
 # Go
 /bin/
 /pkg/
+.nbb/
