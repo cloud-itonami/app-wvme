@@ -7,13 +7,13 @@
     src/app.ts                  ACTOR_DID / methods[] / nanoid の既定値
     wrangler.jsonc              name / routes / vars.APP_CAPABILITIES / APP_NANOID
     kotodama.jsonld             @id / nanoid / profile.capabilities
-    cljs/src/wvme/app.cljs      default-db の :app/routes / :app/vars / :app/route-count
+    cljs/src/wvme/app.cljk      default-db の :app/routes / :app/vars / :app/route-count
     PROJECT.jsonld              @id / url
     README.md                   8 メソッドの一覧
     README.edn                  repo の名前と kind
 
   **どれ 1 つを書き換えても、他の 6 つは黙っている。** 既存のテストは 2 本とも
-  自分の側しか見ない —— cljs/test/wvme/app_test.cljs は `default-db` を
+  自分の側しか見ない —— cljs/test/wvme/app_test.cljk は `default-db` を
   `default-db` と比べており（docstring は「wrangler.jsonc に対して
   scripts/verify-appview-page-summary.cljs が検査する不変条件」と書いているが、
   **その検査は superproject に在ってこのリポジトリには無い**）、
@@ -54,7 +54,7 @@
 (def project   (json* "PROJECT.jsonld"))
 (def readme    (slurp* "README.md"))
 (def worker-ts (slurp* (str appview "/src/app.ts")))
-(def app-cljs  (slurp* (str appview "/cljs/src/wvme/app.cljs")))
+(def app-cljs  (slurp* (str appview "/cljs/src/wvme/app.cljk")))
 (def readme-edn (reader/read-string (slurp* "README.edn")))
 
 ;; ── src/app.ts から値を読む ─────────────────────────────────────────────────
@@ -82,7 +82,7 @@
   (when-let [block (second (re-find #"(?s)methods: \[(.*?)\]" worker-ts))]
     (mapv second (re-seq #"\"([A-Za-z]+)\"" block))))
 
-;; ── cljs/src/wvme/app.cljs から default-db を読む ───────────────────────────
+;; ── cljs/src/wvme/app.cljk から default-db を読む ───────────────────────────
 ;;
 ;; ns 全体は reagent / re-frame / jp-go-dds を require するので nbb では読めない。
 ;; `default-db` の map リテラルだけを取り出して EDN として読む。
@@ -122,7 +122,7 @@
     (is (some? worker-nanoid-default) "src/app.ts の `env.APP_NANOID ?? \"…\"` が読めない")
     (is (some? worker-dispatcher-default) "src/app.ts の `env.DISPATCHER_URL ?? \"…\"` が読めない")
     (is (= 8 (count worker-methods)) (str "src/app.ts の methods[] が 8 本でない: " (pr-str worker-methods)))
-    (is (some? spa-default-db) "cljs/src/wvme/app.cljs の default-db map が読めない")
+    (is (some? spa-default-db) "cljs/src/wvme/app.cljk の default-db map が読めない")
     (is (= 8 (count readme-methods)) (str "README の メソッド一覧が 8 本でない: " (pr-str readme-methods)))))
 
 ;; ── その 2: 8 つのメソッド名 ────────────────────────────────────────────────
@@ -184,7 +184,7 @@
 (deftest the-spa-landing-page-shows-the-routes-wrangler-actually-declares
   (testing "cljs の landing page は『この appview の隣で wrangler が宣言している
             公開ルート』を描画する。その配列は **手で写された定数**であり、
-            cljs/test/wvme/app_test.cljs はそれを自分自身と比べている
+            cljs/test/wvme/app_test.cljk はそれを自分自身と比べている
             （docstring は superproject の verify-appview-page-summary.cljs を
             指すが、その検査はこのリポジトリには無い）。**ここが、写した先と
             写し元を突き合わせる唯一の場所。**"
@@ -206,7 +206,7 @@
             手で更新されてきた（059e0f4 で 1 度、svelte→cljs の移行でもう 1 度）。
             **実在を確かめる**ので、次の移動で更新を忘れたら赤くなる。"
     (let [p (:app/relative-path spa-default-db)]
-      (is (= (str appview "/cljs/src/wvme/app.cljs") p))
+      (is (= (str appview "/cljs/src/wvme/app.cljk") p))
       (is (exists? p) (str "self-describe している path が実在しない: " p)))))
 
 ;; ── その 5: 名乗り ──────────────────────────────────────────────────────────
