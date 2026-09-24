@@ -1,0 +1,48 @@
+{
+  "jobs": [
+    {
+      "base_url": null,
+      "context_from": null,
+      "deliver": "local",
+      "enabled": true,
+      "enabled_toolsets": null,
+      "id": "7f1cd9190216",
+      "model": null,
+      "name": "cyber-evidence",
+      "no_agent": false,
+      "prompt": "no_agent evidence job: run the probe script and append to the ledger. Do NOT start an agent analysis. Script: cyber_evidence.py (measures the 4 cybersecurity product repos' test-suite state under kbb, appends one JSON line per repo to ~/.hermes/profiles/cyber-maint/workspace/cyber-ledger.jsonl). Output: MEASURE rows + STATUS line.",
+      "provider": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 7 * * *",
+        "display": "0 7 * * *"
+      },
+      "script": "cyber_evidence.py",
+      "skill": null,
+      "skills": [],
+      "workdir": null
+    },
+    {
+      "base_url": null,
+      "context_from": null,
+      "deliver": "local",
+      "enabled": true,
+      "enabled_toolsets": null,
+      "id": "60602e7ca07e",
+      "model": null,
+      "name": "cyber-report",
+      "no_agent": false,
+      "prompt": "cyber-maint tick: 1 iteration = 1 finding, per SOUL.md. Step 1: run `python3 scripts/cyber_evidence.py` (measure only, no edits). Step 2: read the LAST TWO lines of ~/.hermes/profiles/cyber-maint/workspace/cyber-ledger.jsonl for one repo and compare with the previous entry. Step 3: report ONE finding: repo name / status (green|red|unmeasured — unmeasured is NOT red) / next action (for red: propose a branch+PR per SOUL.md; do not merge, do not push to main, do not touch other bots' ledgers). If everything is green and unchanged from last tick, report one line \"all green, no change\". Keep the report short.",
+      "provider": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "20 7 * * *",
+        "display": "20 7 * * *"
+      },
+      "script": null,
+      "skill": null,
+      "skills": [],
+      "workdir": null
+    }
+  ]
+}
