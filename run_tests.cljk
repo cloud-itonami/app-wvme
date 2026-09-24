@@ -23,7 +23,7 @@
 ;; 「運用 tooling の script host は nbb のみ」。新規の .sh / .mjs / .cjs は禁止）。
 ;; 同じ形の先行例が orgs/cloud-itonami/cargo の run_tests.cljk。
 (ns run-tests
-  (:require [clojure.test :as t]
+  (:require [kotoba.test :as t]
             [wvme.repo-test]))
 
 (def green-marker

@@ -1,7 +1,7 @@
 ;; in-process E2E over a mock res pair — the same handler the real server
 ;; binds. A REAL socket E2E runs against the live server below (manual).
 (ns wvme-dispatcher.e2e-test
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [kotoba.lang.text :as str]
             [wvme-dispatcher.server :as server]
             [wvme-dispatcher.scan :as scan]))

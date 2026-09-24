@@ -36,7 +36,7 @@
 
   実行:  kbb --backend sci --classpath test run_tests.cljk"
   (:require [kotoba.lang.text :as str]
-            [clojure.test :refer [deftest is testing]]
+            [kotoba.test :refer [deftest is testing]]
             [cljs.reader :as reader]
             ["node:fs" :as fs]
             ["node:path" :as path]))
