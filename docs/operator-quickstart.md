@@ -41,7 +41,7 @@ npm ci
 → exit 0。
 
 ```bash
-# ⚠ ビルドは repo-wide の resource governor を通す（CLAUDE.md）。直接叩かない。
+# ⚠ ビルドは repo-wide の resource governor を通す（AGENTS.md）。直接叩かない。
 node <superproject>/scripts/resource-guard.mjs run build -- npm run build
 ```
 → exit 0。`[:app] Build completed. (111 files, 110 compiled, 0 warnings)`。

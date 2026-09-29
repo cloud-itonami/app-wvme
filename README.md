@@ -76,7 +76,7 @@ UI スタック（ADR-2608260900 / ADR-2608080100 の single-page app 規則）�
 `docs/operator-quickstart.md` に実測済みの手順がある。要点だけ:
 
 ```bash
-# SPA（ビルドは必ず resource governor 経由。CLAUDE.md）
+# SPA（ビルドは必ず resource governor 経由。AGENTS.md）
 cd appview/wvme-mcp-component/cljs && npm ci
 node <superproject>/scripts/resource-guard.mjs run build -- npm run build
 node <superproject>/scripts/resource-guard.mjs run build -- npm test

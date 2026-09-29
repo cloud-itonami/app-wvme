@@ -11,7 +11,7 @@
 // vitest は動き、緑を出し、CI は 1 passed と報告し続けた。**しかし
 // src/app.ts をどう壊しても、このファイルは赤くならなかった** —— README は
 // これを既知の欠陥 4 として「落ちようがない」と記録している。
-// superproject CLAUDE.md の言葉では「落ちない gate は劇場」。
+// superproject AGENTS.md の言葉では「落ちない gate は劇場」。
 //
 // ## ここが見るもの / 見ないもの
 //
