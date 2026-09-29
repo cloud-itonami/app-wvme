@@ -116,7 +116,7 @@
 (deftest the-worker-source-still-declares-the-values-this-suite-reads-from-it
   (testing "抽出が nil を返したら、以下の比較は全部『nil = nil』で緑になりうる。
             **読めなかったことを、一致したことと同じ値にしない**（superproject
-            CLAUDE.md の evidence floor）。"
+            AGENTS.md の evidence floor）。"
     (is (some? worker-actor-did) "src/app.ts の `const ACTOR_DID = \"…\";` が読めない")
     (is (some? worker-nsid-prefix) "src/app.ts の `const NSID_PREFIX = \"…\";` が読めない")
     (is (some? worker-nanoid-default) "src/app.ts の `env.APP_NANOID ?? \"…\"` が読めない")

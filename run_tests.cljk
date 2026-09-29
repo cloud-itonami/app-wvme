@@ -19,7 +19,7 @@
 ;; **リポジトリ全体をまたぐ不変条件なので、リポジトリのルートに置く。**
 ;; 実装の振る舞い（404 / 400 / proxy）は各サブパッケージの suite が持つ。
 ;;
-;; script host が nbb + cljs.test なのは workspace の規則（superproject CLAUDE.md
+;; script host が nbb + cljs.test なのは workspace の規則（superproject AGENTS.md
 ;; 「運用 tooling の script host は nbb のみ」。新規の .sh / .mjs / .cjs は禁止）。
 ;; 同じ形の先行例が orgs/cloud-itonami/cargo の run_tests.cljk。
 (ns run-tests
